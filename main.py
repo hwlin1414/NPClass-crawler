@@ -223,11 +223,11 @@ def main():
                     urls.append(result)
                     break
     curl.close()
-    log('crawler iinished at %s' % (date))
+    log('crawler finished at %s' % (date))
 
 if __name__ == "__main__":
     try:
         main()
-    except KeyboardInterrupt:
-        print""
+    except KeyboardInterrupt, e:
+        print ""
         exit(1)
