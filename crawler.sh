@@ -11,6 +11,7 @@
     -f avi \
     -f exe \
     -f wav \
+    -f pdf \
     #-f mp3 \
     #-f 7z \
     #-f rar \

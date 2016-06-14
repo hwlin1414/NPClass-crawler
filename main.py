@@ -98,10 +98,10 @@ def main():
         # catch timeout or interrupt
         try:
             curl.perform()
-        except KeyboardInterrupt:
+        except KeyboardInterrupt, r:
             log('user interrupt')
             exit(1) # interrupt
-        except pycurl.error as e:
+        except pycurl.error, e:
             if e[0] == 23:
                 log('user interrupt')
                 exit(1) # interrupt
@@ -125,9 +125,10 @@ def main():
         # print mails
         for m in mails:
             if m not in cols:
-                log(m)
-                if verbose == False: print m
-            cols.append(m)
+                s = 'mail(%d): %s' % (len(cols), m)
+                log(s)
+                if verbose == False: print s
+                cols.append(m)
 
         # writing file
         if args.writedir is not None:
