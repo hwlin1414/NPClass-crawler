@@ -11,16 +11,18 @@ import StringIO
 import re
 
 logfile = None
+verbose = False
 
 def log(string):
     if logfile is None:
         print('log error!')
         exit(1)
     date = datetime.datetime.now().strftime("%H:%M:%S")
-    print('[%s] %s' % (date, string))
+    if verbose == True: print('[%s] %s' % (date, string))
     logfile.write('[%s] %s\n' % (date, string))
 
 def get_args():
+    global verbose
     parser = argparse.ArgumentParser(description='This is a simple crawler.')
     parser.add_argument('-u', '--url', action='append', help='start urls', dest='urls', required=True)
     parser.add_argument('-d', '--domain', action='append', help='allow domains', dest='domains', required=True)
@@ -29,17 +31,21 @@ def get_args():
     parser.add_argument('-t', '--fetch-timeout', type=int, default=5, help='fetching file timeout', dest='ftime')
     parser.add_argument('-T', '--connection-timeout', type=int, default=2, help='connection timeout', dest='ctime')
     parser.add_argument('-l', '--url-length', type=int, default=128, help='url max length', dest='urllen')
+    parser.add_argument('-v', '--verbose', action='store_true', help='verbose', dest='verbose')
+    parser.add_argument('-w', '--write-dir', help='write directory', dest='writedir')
     return parser.parse_args(sys.argv[1:])
 
 def main():
-    global logfile
+    global logfile, verbose
     # parse args
     args = get_args()
-    if os.path.isdir('res') == False:
-        os.mkdir('res')
+    if args.verbose == True:
+        verbose = True
+    if args.writedir is not None and os.path.isdir(args.writedir) == False:
+        os.mkdir(args.writedir)
 
     # log start
-    logfile = open('res/crawler.log', 'w')
+    logfile = open('crawler.log', 'w')
     date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     log('crawler start at: %s' % (date))
 
@@ -73,6 +79,7 @@ def main():
     curl.setopt(pycurl.TIMEOUT, args.ftime)
     #curl.setopt(pycurl.FOLLOWLOCATION, True)
     i = 0
+    cols = []
 
     for url in urls:
         # prevent http://www.cs.ccu.edu.tw <- not endwith /
@@ -86,6 +93,9 @@ def main():
         # catch timeout or interrupt
         try:
             curl.perform()
+        except KeyboardInterrupt:
+            log('user interrupt')
+            exit(1) # interrupt
         except pycurl.error as e:
             if e[0] == 23:
                 log('user interrupt')
@@ -98,50 +108,61 @@ def main():
         if code == 200:
             body = buffer.getvalue()
             results = re.findall('(?:href|src|action)=["\'](.*?)["\']', body)
+            mails = re.findall('[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', body)
         elif code in (301, 302):
             body = header.getvalue()
             results = re.findall('[Ll]ocation: ([^\r]*)', body)
+            mails = ()
         else:
             log('return code error: %d' % (code))
             continue
 
-        # prepare writing file
-        try:
-            fn = 'res/' + re.findall('http[s]?://(.*?/.*)', url)[0]
-            if fn.find('?') != -1:
-                fn = fn[0:fn.find('?')] + re.sub('/', '%2f', fn[fn.find('?'):])
-        except:
-            log('fn error: %s' % (url))
-            continue
-        if os.path.isdir(fn) or fn.endswith('/') or fn.endswith('/.') or fn.endswith('/..'):
-            if fn.endswith('/') == False:
-                fn = fn + '/'
-            fn = fn + 'index'
-        dir = re.findall('((?:[^?]*?/)+[^/?]*)/', fn)[0]
+        # print mails
+        for m in mails:
+            if m not in cols:
+                log(m)
+                if verbose == False: print m
+            cols.append(m)
 
-        # if dir is a file
-        if os.path.isfile(dir) == True:
-            log('moving %s' % (dir))
+        # writing file
+        if args.writedir is not None:
+            # prepare writing file
             try:
-                os.rename(dir, 'res/crawler.tmp')
-                os.makedirs(dir)
-                os.rename('res/crawler.tmp', dir + '/index')
+                fn = args.writedir + '/' + re.findall('http[s]?://(.*?/.*)', url)[0]
+                if fn.find('?') != -1:
+                    fn = fn[0:fn.find('?')] + re.sub('/', '%2f', fn[fn.find('?'):])
             except:
-                log('moving error: %s' % (dir))
+                log('fn error: %s' % (url))
+                continue
+            if os.path.isdir(fn) or fn.endswith('/') or fn.endswith('/.') or fn.endswith('/..'):
+                if fn.endswith('/') == False:
+                    fn = fn + '/'
+                fn = fn + 'index'
+            dir = re.findall('((?:[^?]*?/)+[^/?]*)/', fn)[0]
 
-        # if dir not exist
-        if os.path.isdir(dir) == False:
-            try: os.makedirs(dir)
+            # if dir is a file
+            if os.path.isfile(dir) == True:
+                log('moving %s' % (dir))
+                try:
+                    os.rename(dir, args.writedir + '/crawler.tmp')
+                    os.makedirs(dir)
+                    os.rename(args.writedir + '/crawler.tmp', dir + '/index')
+                except:
+                    log('moving error: %s' % (dir))
+
+            # if dir not exist
+            if os.path.isdir(dir) == False:
+                try: os.makedirs(dir)
+                except:
+                    log('mkdir error: %s' % (dir))
+
+            # write file
+            try:
+                file = open(fn, 'w')
+                file.write(body)
+                file.close()
             except:
-                log('mkdir error: %s' % (dir))
-
-        # write file
-        try:
-            file = open(fn, 'w')
-            file.write(body)
-            file.close()
-        except:
-            log('writing file error: %s' % (fn))
+                log('writing file error: %s' % (fn))
 
         i = i + 1
 
@@ -197,7 +218,11 @@ def main():
                     urls.append(result)
                     break
     curl.close()
-    log('crawler finished at %s' % (date))
+    log('crawler iinished at %s' % (date))
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print""
+        exit(1)
