@@ -2,13 +2,17 @@
 # -*- coding: utf-8 -*-
 # author hwlin 20160128
 
-import os
-import datetime
-import sys
-import argparse
-import pycurl
-import StringIO
-import re
+try:
+    import os
+    import datetime
+    import sys
+    import argparse
+    import pycurl
+    import StringIO
+    import re
+except ImportError:
+    print 'some module not found'
+    exit(1)
 
 logfile = None
 verbose = False
