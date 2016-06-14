@@ -32,3 +32,4 @@
     #-f gif \
     #-f ico \
     #-f bmp \
+    #-w res \

@@ -50,7 +50,12 @@ def main():
     log('crawler start at: %s' % (date))
 
     # setting variables
-    urls = args.urls
+    urls = []
+    for url in args.urls:
+        if not url.startswith('http'):
+            url = 'http://' + url
+        urls.append(url)
+
     filtere = []
     filterc = []
     if args.filtere is not None:
@@ -108,7 +113,7 @@ def main():
         if code == 200:
             body = buffer.getvalue()
             results = re.findall('(?:href|src|action)=["\'](.*?)["\']', body)
-            mails = re.findall('[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', body)
+            mails = re.findall('[a-zA-Z0-9_.+-]{2,}@[a-zA-Z0-9-.]+\.[a-zA-Z0-9]{2,}', body)
         elif code in (301, 302):
             body = header.getvalue()
             results = re.findall('[Ll]ocation: ([^\r]*)', body)
