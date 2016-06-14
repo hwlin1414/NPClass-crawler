@@ -33,7 +33,7 @@ def get_args():
     parser.add_argument('-f', '--filter-endswith', action='append', help='filter url(endswith)', dest='filtere')
     parser.add_argument('-F', '--filter-contain', action='append', help='filter url(contain)', dest='filterc')
     parser.add_argument('-t', '--fetch-timeout', type=int, default=5, help='fetching file timeout', dest='ftime')
-    parser.add_argument('-T', '--connection-timeout', type=int, default=2, help='connection timeout', dest='ctime')
+    parser.add_argument('-T', '--connection-timeout', type=int, default=3, help='connection timeout', dest='ctime')
     parser.add_argument('-l', '--url-length', type=int, default=128, help='url max length', dest='urllen')
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose', dest='verbose')
     parser.add_argument('-w', '--write-dir', help='write directory', dest='writedir')
@@ -86,6 +86,7 @@ def main():
     curl.setopt(curl.HEADERFUNCTION, header.write)
     curl.setopt(pycurl.CONNECTTIMEOUT, args.ctime)
     curl.setopt(pycurl.TIMEOUT, args.ftime)
+    curl.setopt(pycurl.USERAGENT, 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36')
     #curl.setopt(pycurl.FOLLOWLOCATION, True)
     i = 0
     cols = []
